@@ -14,7 +14,7 @@ An end-to-end automated job application system built with n8n, Groq LLaMA 3.1, a
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Schedule Trigger (every 3 hrs)
@@ -49,7 +49,7 @@ Schedule Trigger (every 3 hrs)
 
 ---
 
-## 📋 Workflows
+##  Workflows
 
 ### Workflow 1 — Log Job Application (Manual)
 Webhook-triggered workflow for manually logging a job application.
@@ -77,7 +77,7 @@ Runs every 3 hours. Scrapes 4 RSS feeds → AI filter → logs to Google Sheets 
 Triggers when a new row is added to Google Sheets. Generates a tailored cover letter using LLM and saves it as a Google Doc.
 
 ---
-## 🤖 AI Prompt Engineering
+## AI Prompt Engineering
 
 The Groq LLaMA 3.1 model uses custom prompts to:
 1. **Filter jobs** — Only passes CS internships/entry-level roles relevant to a Computer Science undergraduate
@@ -86,7 +86,7 @@ The Groq LLaMA 3.1 model uses custom prompts to:
 
 ---
 
-## 📈 Results
+## Results
 
 - Processes **20+ job listings** per day automatically
 - Runs **every 3 hours** without manual intervention
