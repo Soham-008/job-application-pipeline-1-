@@ -1,0 +1,98 @@
+{
+  "name": "Job Scraper",
+  "description": "Automatically scrapes CS internship listings from multiple RSS feeds, filters with Groq LLaMA AI, and logs relevant jobs to Google Sheets with cover letters",
+  "nodes": [
+    {
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 3 }]
+        }
+      }
+    },
+    {
+      "name": "RSS Read - RemoteOK Intern",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "parameters": {
+        "url": "https://remoteok.com/remote-intern-jobs.rss"
+      }
+    },
+    {
+      "name": "RSS Read - RemoteOK Junior",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "parameters": {
+        "url": "https://remoteok.com/remote-junior-jobs.rss"
+      }
+    },
+    {
+      "name": "RSS Read - RemoteOK Dev Intern",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "parameters": {
+        "url": "https://remoteok.com/remote-dev+intern-jobs.rss"
+      }
+    },
+    {
+      "name": "RSS Read - We Work Remotely",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "parameters": {
+        "url": "https://weworkremotely.com/categories/remote-programming-jobs.rss"
+      }
+    },
+    {
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "parameters": { "mode": "append" }
+    },
+    {
+      "name": "Limit",
+      "type": "n8n-nodes-base.limit",
+      "parameters": { "maxItems": 5 }
+    },
+    {
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "parameters": {
+        "prompt": "You are a job filter assistant. Analyze this job posting and respond ONLY in JSON format, no extra text:\n\n{\n  \"relevant\": true or false,\n  \"company\": \"company name\",\n  \"position\": \"job title\",\n  \"location\": \"Remote or location\",\n  \"match_score\": a number from 1-100,\n  \"next_action\": \"Apply now\",\n  \"url\": \"job url\"\n}\n\nA job is relevant ONLY if ALL of these are true:\n1. It is a software engineering, CS, or tech INTERNSHIP or entry-level role\n2. It is in California OR Remote\n3. It is suitable for a Computer Science junior/undergraduate student\n\nJob title: {{ $json.title }}\nJob content: {{ $json.content }}\nJob URL: {{ $json.link }}"
+      }
+    },
+    {
+      "name": "IF Relevant",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{ $json.text }}", "operation": "contains", "value2": "\"relevant\": true" }]
+        }
+      }
+    },
+    {
+      "name": "Google Sheets - Log Job",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "sheetName": "Sheet1",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job ID": "={{ Date.now() }}",
+            "Company": "={{ $json.text.match(/\"company\":\\s*\"([^\"]+)\"/)[1] }}",
+            "Position": "={{ $json.text.match(/\"position\":\\s*\"([^\"]+)\"/)[1] }}",
+            "Location": "={{ $json.text.match(/\"location\":\\s*\"([^\"]+)\"/)[1] }}",
+            "Match Score": "={{ $json.text.match(/\"match_score\":\\s*(\\d+)/)[1] }}",
+            "Status": "Applied",
+            "Applied Date": "={{ new Date().toISOString().split('T')[0] }}",
+            "Next Action": "={{ $json.text.match(/\"next_action\":\\s*\"([^\"]+)\"/)[1] }}",
+            "URL": "={{ $json.text.match(/\"url\":\\s*\"([^\"]+)\"/)[1] }}"
+          }
+        }
+      }
+    }
+  ],
+  "rss_feeds": [
+    "https://remoteok.com/remote-intern-jobs.rss",
+    "https://remoteok.com/remote-junior-jobs.rss",
+    "https://remoteok.com/remote-dev+intern-jobs.rss",
+    "https://weworkremotely.com/categories/remote-programming-jobs.rss"
+  ],
+  "note": "Import this workflow into n8n and update credentials before activating"
+}

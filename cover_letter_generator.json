@@ -1,0 +1,61 @@
+{
+  "name": "Cover Letter Generator",
+  "description": "Triggers when a new job row is added to Google Sheets, generates a tailored cover letter using Groq LLaMA, creates a Google Doc, and saves the link back to the sheet",
+  "trigger": "Google Sheets - On Row Added",
+  "nodes": [
+    {
+      "name": "Google Sheets Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "parameters": {
+        "event": "rowAdded",
+        "sheetName": "Sheet1"
+      }
+    },
+    {
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "parameters": {
+        "prompt": "You are a professional cover letter writer. Write a tailored cover letter for this job using the candidate's resume below.\n\nJOB DETAILS:\nCompany: {{ $json['Company'] }}\nPosition: {{ $json['Position'] }}\nLocation: {{ $json['Location'] }}\nJob URL: {{ $json['URL'] }}\n\nCANDIDATE RESUME:\nName: Soham Kulkarni\nEmail: skulkarni435656@sdsu.edu\nEducation: San Diego State University, B.S. Computer Science, Junior (2023-2027)\nSkills: Python, C++, Java, JavaScript, HTML/CSS, RAG, LangChain, OpenAI API, C++17 Threading, Git, n8n, Groq LLaMA\nProjects: AI Job Pipeline (n8n, Groq), GitHub PR Review Bot, Router Packet Simulator (C++), Semantic RAG System (Python)\n\nWrite a professional, enthusiastic 3 paragraph cover letter. Keep it under 300 words. Address it to the Hiring Manager."
+      }
+    },
+    {
+      "name": "Create Google Doc",
+      "type": "n8n-nodes-base.googleDocs",
+      "parameters": {
+        "operation": "create",
+        "title": "Cover Letter - {{ $('Google Sheets Trigger').item.json['Company'] }} - {{ $('Google Sheets Trigger').item.json['Position'] }}"
+      }
+    },
+    {
+      "name": "Update Google Doc Content",
+      "type": "n8n-nodes-base.googleDocs",
+      "parameters": {
+        "operation": "update",
+        "docId": "={{ $json.id }}",
+        "actionsUi": {
+          "actionFields": [{
+            "action": "insert",
+            "object": "text",
+            "text": "={{ $('Basic LLM Chain').item.json.text }}"
+          }]
+        }
+      }
+    },
+    {
+      "name": "Update Google Sheets - Save Doc Link",
+      "type": "n8n-nodes-base.googleSheets",
+      "parameters": {
+        "operation": "update",
+        "sheetName": "Sheet1",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Cover Letter": "={{ \"https://docs.google.com/document/d/\" + $('Create Google Doc').item.json.id }}"
+          }
+        },
+        "matchingColumns": ["Job ID"]
+      }
+    }
+  ],
+  "note": "Import this workflow into n8n and update credentials before activating"
+}
